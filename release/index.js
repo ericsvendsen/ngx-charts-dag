@@ -19610,7 +19610,7 @@ function fromByteArray (uint8) {
 
 var base64 = __webpack_require__("./node_modules/base64-js/index.js")
 var ieee754 = __webpack_require__("./node_modules/ieee754/index.js")
-var isArray = __webpack_require__("./node_modules/buffer/node_modules/isarray/index.js")
+var isArray = __webpack_require__("./node_modules/isarray/index.js")
 
 exports.Buffer = Buffer
 exports.SlowBuffer = SlowBuffer
@@ -21389,18 +21389,6 @@ function isnan (val) {
 }
 
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__("./node_modules/webpack/buildin/global.js")))
-
-/***/ }),
-
-/***/ "./node_modules/buffer/node_modules/isarray/index.js":
-/***/ (function(module, exports) {
-
-var toString = {}.toString;
-
-module.exports = Array.isArray || function (arr) {
-  return toString.call(arr) == '[object Array]';
-};
-
 
 /***/ }),
 
@@ -25958,6 +25946,18 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 
   buffer[offset + i - d] |= s * 128
 }
+
+
+/***/ }),
+
+/***/ "./node_modules/isarray/index.js":
+/***/ (function(module, exports) {
+
+var toString = {}.toString;
+
+module.exports = Array.isArray || function (arr) {
+  return toString.call(arr) == '[object Array]';
+};
 
 
 /***/ }),
@@ -38694,6 +38694,7 @@ var directed_graph_component_DirectedGraphComponent = (function (_super) {
         _this.zoomSpeed = 0.1;
         _this.minZoomLevel = 0.1;
         _this.maxZoomLevel = 4.0;
+        _this.autoZoom = false;
         _this.activate = new core_["EventEmitter"]();
         _this.deactivate = new core_["EventEmitter"]();
         _this.margin = [0, 0, 0, 0];
@@ -38836,8 +38837,17 @@ var directed_graph_component_DirectedGraphComponent = (function (_super) {
             });
         }
         // Calculate the height/width total
-        this.graphDims.width = Math.max.apply(Math, this._nodes.map(function (n) { return n.x; }));
-        this.graphDims.height = Math.max.apply(Math, this._nodes.map(function (n) { return n.y; }));
+        this.graphDims.width = Math.max.apply(Math, this._nodes.map(function (n) { return n.x + n.width; }));
+        this.graphDims.height = Math.max.apply(Math, this._nodes.map(function (n) { return n.y + n.height; }));
+        if (this.autoZoom) {
+            var heightZoom = this.dims.height / this.graphDims.height;
+            var widthZoom = this.dims.width / (this.graphDims.width);
+            var zoomLevel = Math.min(heightZoom, widthZoom, 1);
+            if (zoomLevel !== this.zoomLevel) {
+                this.zoomLevel = zoomLevel;
+                this.updateTransform();
+            }
+        }
         requestAnimationFrame(function () { return _this.redrawLines(); });
         this.cd.markForCheck();
     };
@@ -38909,7 +38919,9 @@ var directed_graph_component_DirectedGraphComponent = (function (_super) {
             // set view options
             node.options = {
                 color: this.colors.getColor(this.groupResultsBy(node)),
-                transform: "translate( " + (node.x - node.width / 2) + ", " + (node.y - node.height / 2) + ")"
+                transform: node.x && node.y
+                    ? "translate( " + (node.x - node.width / 2) + ", " + (node.y - node.height / 2) + ")"
+                    : 'translate( 0, 0 )'
             };
         }
         // update dagre
@@ -39246,6 +39258,10 @@ var directed_graph_component_DirectedGraphComponent = (function (_super) {
         Object(core_["Input"])(),
         __metadata("design:type", Number)
     ], DirectedGraphComponent.prototype, "maxZoomLevel", void 0);
+    __decorate([
+        Object(core_["Input"])(),
+        __metadata("design:type", Boolean)
+    ], DirectedGraphComponent.prototype, "autoZoom", void 0);
     __decorate([
         Object(core_["Output"])(),
         __metadata("design:type", core_["EventEmitter"])
